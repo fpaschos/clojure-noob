@@ -39,3 +39,25 @@
         (if (needs-matching-part? part)
           (recur remaining (conj final-body-parts (make-matching-part part)))
           (recur remaining final-body-parts))))))
+
+(defn my-reduce
+  ([f initial coll]
+   (loop [result initial
+          remaining coll]
+     (let [[current & rest] remaining]
+       (if (empty? remaining)
+         result
+         (recur (f result current) rest)))))
+  ([f [head & tail]]
+   (my-reduce f (f head (first tail)) (rest tail))))
+
+(defn better-symmetrize-body-parts
+  "Expects a seq of maps which have a :name and :size"
+  [asym-body-parts]
+  (reduce (fn [final-body-parts part]
+            (let [final-body-parts (conj final-body-parts part)]
+              (if (needs-matching-part? part)
+                (conj final-body-parts (make-matching-part part))
+                final-body-parts)))
+          []
+          asym-body-parts))
