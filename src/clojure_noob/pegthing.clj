@@ -2,6 +2,8 @@
   (require [clojure.set :as set])
   (:gen-class))
 
+(declare successful-move prompt-move game-over query-rows)
+
 ;;Create the board
 
 (defn tri*
@@ -229,4 +231,76 @@
   (doseq [row-num (range 1 (inc (:rows board)))]
     (println (render-row board row-num))))
 
+;;
 ;; Interaction
+;;
+
+(defn letter->pos
+  "Converts a letter string to the corresponding position number"
+  [letter]
+  (inc (- (int (first letter)) alpha-start)))
+
+(defn get-input
+  "Waits for user to enter text and hit enter, then cleans the input"
+  ([] (get-input nil))
+  ([default]
+     (let [input (clojure.string/trim (read-line))]
+       (if (empty? input)
+         default
+         (clojure.string/lower-case input)))))
+
+(defn characters-as-strings
+  "Given a string, return a collection consisting of each indivisual
+  character"
+  [string]
+  (re-seq #"[a-zA-Z]" string))
+
+(defn prompt-move
+  [board]
+  (println "\nHere's your board:")
+  (print-board board)
+  (println "Move from where to where? Enter two letters:")
+  (let [input (map letter->pos (characters-as-strings (get-input)))]
+    (if-let [new-board (make-move board (first input) (second input))]
+      (successful-move new-board)
+      (do
+        (println "\n!!! That was an invalid move :(\n")
+        (prompt-move board)))))
+
+(defn successful-move
+  [board]
+  (if (can-move? board)
+    (prompt-move board)
+    (game-over board)))
+
+(defn game-over
+  [board]
+  (let [remaining-pegs (count (filter :pegged (vals board)))]
+    (println "Game over! You had" remaining-pegs "pegs left:")
+    (print-board board)
+    (println "Play again? y/n [y]")
+    (let [input (get-input "y")]
+      (if (= "y" input)
+        (query-rows)
+        (do
+          (println "Bye!")
+          (System/exit 0))))))
+
+(defn prompt-empty-peg
+  [board]
+  (println "Here's your board:")
+  (print-board board)
+  (println "Remove which peg? [e]")
+  (prompt-move (remove-peg board (letter->pos (get-input "e")))))
+
+(defn prompt-rows
+  []
+  (println "How many rows? [5]")
+  (let [rows (Integer. (get-input 5))
+        board (new-board rows)]
+    (prompt-empty-peg board)))
+
+(defn -main
+  [& args]
+  (println "Get ready to play peg thing!")
+  (prompt-rows))
